@@ -7,6 +7,8 @@ from rich.console import Console
 from rich.table import Table
 from ddogctl.client import get_datadog_client
 from ddogctl.utils.error import handle_api_error
+from ddogctl.utils.file_input import load_json_option
+from ddogctl.utils.confirm import confirm_action
 
 console = Console()
 
@@ -205,3 +207,188 @@ def validate_monitor(monitor_type, query):
         sys.exit(1)
     else:
         console.print("[green]✓ Monitor definition is valid[/green]")
+
+
+@monitor.command(name="create")
+@click.option("--type", "monitor_type", default=None, help="Monitor type (e.g., metric alert)")
+@click.option("--query", default=None, help="Monitor query")
+@click.option("--name", default=None, help="Monitor name")
+@click.option("--message", default=None, help="Monitor notification message")
+@click.option("--tags", default=None, help="Tags (comma-separated)")
+@click.option("--priority", type=int, default=None, help="Monitor priority (1-5)")
+@click.option(
+    "-f",
+    "--file",
+    "file_data",
+    callback=load_json_option,
+    default=None,
+    help="JSON file with monitor definition",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["json", "table"]),
+    default="table",
+    help="Output format",
+)
+@handle_api_error
+def create_monitor_cmd(monitor_type, query, name, message, tags, priority, file_data, fmt):
+    """Create a monitor from inline flags or a JSON file."""
+    from datadog_api_client.v1.model.monitor import Monitor
+
+    if file_data:
+        # File takes precedence over inline flags
+        monitor_body = Monitor(**file_data)
+    else:
+        # Validate required inline flags
+        if not monitor_type:
+            raise click.UsageError("Missing option '--type' (required without -f)")
+        if not query:
+            raise click.UsageError("Missing option '--query' (required without -f)")
+        if not name:
+            raise click.UsageError("Missing option '--name' (required without -f)")
+
+        kwargs = {"type": monitor_type, "query": query, "name": name}
+        if message:
+            kwargs["message"] = message
+        if tags:
+            kwargs["tags"] = [t.strip() for t in tags.split(",")]
+        if priority is not None:
+            kwargs["priority"] = priority
+
+        monitor_body = Monitor(**kwargs)
+
+    client = get_datadog_client()
+
+    with console.status("[cyan]Creating monitor...[/cyan]"):
+        result = client.monitors.create_monitor(body=monitor_body)
+
+    if fmt == "json":
+        print(json.dumps(result.to_dict(), indent=2, default=str))
+    else:
+        console.print(f"[green]✓ Monitor {result.id} created[/green]")
+        console.print(f"[bold]Name:[/bold] {result.name}")
+
+
+@monitor.command(name="update")
+@click.argument("monitor_id", type=int)
+@click.option("--name", default=None, help="Monitor name")
+@click.option("--query", default=None, help="Monitor query")
+@click.option("--message", default=None, help="Monitor notification message")
+@click.option("--tags", default=None, help="Tags (comma-separated)")
+@click.option("--priority", type=int, default=None, help="Monitor priority (1-5)")
+@click.option(
+    "-f",
+    "--file",
+    "file_data",
+    callback=load_json_option,
+    default=None,
+    help="JSON file with monitor update definition",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["json", "table"]),
+    default="table",
+    help="Output format",
+)
+@handle_api_error
+def update_monitor_cmd(monitor_id, name, query, message, tags, priority, file_data, fmt):
+    """Update a monitor by ID from inline flags or a JSON file."""
+    from datadog_api_client.v1.model.monitor_update_request import MonitorUpdateRequest
+
+    if file_data:
+        update_body = MonitorUpdateRequest(**file_data)
+    else:
+        kwargs = {}
+        if name is not None:
+            kwargs["name"] = name
+        if query is not None:
+            kwargs["query"] = query
+        if message is not None:
+            kwargs["message"] = message
+        if tags is not None:
+            kwargs["tags"] = [t.strip() for t in tags.split(",")]
+        if priority is not None:
+            kwargs["priority"] = priority
+
+        if not kwargs:
+            raise click.UsageError("No update fields specified. Use flags or -f file.json")
+
+        update_body = MonitorUpdateRequest(**kwargs)
+
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Updating monitor {monitor_id}...[/cyan]"):
+        result = client.monitors.update_monitor(monitor_id, body=update_body)
+
+    if fmt == "json":
+        print(json.dumps(result.to_dict(), indent=2, default=str))
+    else:
+        console.print(f"[green]✓ Monitor {monitor_id} updated[/green]")
+        console.print(f"[bold]Name:[/bold] {result.name}")
+
+
+@monitor.command(name="delete")
+@click.argument("monitor_id", type=int)
+@click.option("--confirm", "confirmed", is_flag=True, help="Skip confirmation prompt")
+@handle_api_error
+def delete_monitor_cmd(monitor_id, confirmed):
+    """Delete a monitor by ID."""
+    if not confirm_action(f"Delete monitor {monitor_id}?", confirmed):
+        console.print("[yellow]Aborted[/yellow]")
+        return
+
+    client = get_datadog_client()
+
+    with console.status(f"[cyan]Deleting monitor {monitor_id}...[/cyan]"):
+        client.monitors.delete_monitor(monitor_id)
+
+    console.print(f"[green]✓ Monitor {monitor_id} deleted[/green]")
+
+
+@monitor.command(name="mute-all")
+@click.option("--message", default=None, help="Downtime message")
+@handle_api_error
+def mute_all_monitors(message):
+    """Mute all monitors by creating a global downtime (scope: *)."""
+    from datadog_api_client.v1.model.downtime import Downtime
+
+    client = get_datadog_client()
+
+    kwargs = {"scope": ["*"]}
+    if message:
+        kwargs["message"] = message
+
+    downtime_body = Downtime(**kwargs)
+
+    with console.status("[cyan]Muting all monitors...[/cyan]"):
+        result = client.downtimes.create_downtime(body=downtime_body)
+
+    console.print("[green]✓ All monitors muted[/green]")
+    console.print(f"[dim]Downtime ID: {result.id}[/dim]")
+
+
+@monitor.command(name="unmute-all")
+@handle_api_error
+def unmute_all_monitors():
+    """Unmute all monitors by cancelling global downtimes (scope: *)."""
+    client = get_datadog_client()
+
+    with console.status("[cyan]Finding global downtimes...[/cyan]"):
+        downtimes = client.downtimes.list_downtimes()
+
+    # Filter for active global downtimes (scope: ["*"])
+    global_downtimes = [d for d in downtimes if d.scope == ["*"] and not d.disabled]
+
+    if not global_downtimes:
+        console.print("[yellow]No global downtimes found[/yellow]")
+        return
+
+    for dt in global_downtimes:
+        with console.status(f"[cyan]Cancelling downtime {dt.id}...[/cyan]"):
+            client.downtimes.cancel_downtime(dt.id)
+
+    console.print(
+        f"[green]✓ All monitors unmuted ({len(global_downtimes)} downtime(s) cancelled)[/green]"
+    )
