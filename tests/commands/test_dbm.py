@@ -1,10 +1,8 @@
 """Tests for DBM (Database Monitoring) commands."""
 
 import json
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-from click.testing import CliRunner
 from rich.console import Console
 from tests.conftest import create_mock_dbm_host, create_mock_dbm_query, create_mock_dbm_sample
 

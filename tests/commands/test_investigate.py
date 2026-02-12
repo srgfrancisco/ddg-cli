@@ -1,7 +1,6 @@
 """Tests for investigation workflow commands."""
 
 import json
-from datetime import datetime
 from unittest.mock import Mock, patch
 
 # --- Helper mock classes ---

@@ -1,8 +1,7 @@
 """Tests for Logs commands."""
 
 import json
-import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import Mock, patch
 from tests.conftest import create_mock_log
 

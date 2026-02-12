@@ -7,7 +7,6 @@ from rich.console import Console
 from rich.table import Table
 from ddg.client import get_datadog_client
 from ddg.utils.error import handle_api_error
-from ddg.utils.tags import parse_tags
 
 console = Console()
 

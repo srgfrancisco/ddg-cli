@@ -1,7 +1,6 @@
 """Tests for APM commands."""
 
 import json
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 from tests.conftest import create_mock_service_list, create_mock_span

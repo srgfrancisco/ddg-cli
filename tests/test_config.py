@@ -1,7 +1,7 @@
 """Tests for configuration management."""
 
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from pydantic import ValidationError
 from ddg.config import DatadogConfig, load_config
 

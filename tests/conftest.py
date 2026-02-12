@@ -64,7 +64,6 @@ def create_mock_monitor(
     Returns:
         Mock monitor object with to_dict() method
     """
-    from datadog_api_client.v1.model.monitor_overall_states import MonitorOverallStates
 
     class MockMonitor:
         def __init__(self, id, name, overall_state, tags, type, query):

@@ -1,11 +1,9 @@
 """Tests for error handling utilities."""
 
 import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import patch
 from datadog_api_client.exceptions import ApiException
 from ddg.utils.error import handle_api_error
-import sys
-import time
 
 
 class TestHandleApiError:

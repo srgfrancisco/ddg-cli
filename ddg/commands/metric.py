@@ -2,7 +2,7 @@
 
 import click
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from rich.console import Console
 from rich.table import Table
 from ddg.client import get_datadog_client
@@ -78,7 +78,7 @@ def search_metrics(query, limit):
     client = get_datadog_client()
 
     with console.status(f"[cyan]Searching metrics: {query}...[/cyan]"):
-        from_ts = int((datetime.now() - timedelta(hours=1)).timestamp())
+        from_ts = int((datetime.now(timezone.utc) - timedelta(hours=1)).timestamp())
         results = client.metrics.list_active_metrics(_from=from_ts)
 
     if results.metrics:

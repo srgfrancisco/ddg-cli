@@ -1,7 +1,7 @@
 """Tests for Datadog API client wrapper."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from ddg.client import DatadogClient, get_datadog_client
 from ddg.config import DatadogConfig
 
@@ -207,7 +207,7 @@ class TestGetDatadogClient:
         mock_client_instance = Mock()
         mock_client_class.return_value = mock_client_instance
 
-        result = get_datadog_client()
+        get_datadog_client()
 
         # Verify client was created with the correct config
         call_args = mock_client_class.call_args

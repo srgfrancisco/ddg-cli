@@ -2,7 +2,6 @@
 
 import click
 import json
-from datetime import datetime
 from rich.console import Console
 from rich.table import Table
 from ddg.client import get_datadog_client
