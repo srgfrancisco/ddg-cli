@@ -29,6 +29,7 @@ def mock_client():
     client.dbm = Mock()
     client.service_definitions = Mock()
     client.service_checks = Mock()
+    client.downtimes = Mock()
     return client
 
 
