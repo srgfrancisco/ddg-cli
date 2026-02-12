@@ -72,6 +72,7 @@ from ddogctl.commands.downtime import downtime
 from ddogctl.commands.slo import slo
 from ddogctl.commands.dashboard import dashboard
 from ddogctl.commands.completion import completion
+from ddogctl.commands.apply import apply_cmd, diff_cmd
 
 main.add_command(monitor)
 main.add_command(metric)
@@ -87,6 +88,8 @@ main.add_command(downtime)
 main.add_command(slo)
 main.add_command(dashboard)
 main.add_command(completion)
+main.add_command(apply_cmd)
+main.add_command(diff_cmd)
 
 
 if __name__ == "__main__":
