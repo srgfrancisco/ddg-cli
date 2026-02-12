@@ -2,6 +2,7 @@
 
 import click
 import json
+import time
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
@@ -124,53 +125,92 @@ def search_logs(query, from_time, to_time, service, status, limit, format):
 @click.argument("query")
 @click.option("--lines", default=50, type=int, help="Number of log lines to show")
 @click.option("--service", help="Filter by service name")
+@click.option("--follow", is_flag=True, default=False, help="Stream new logs continuously")
 @click.option("--format", type=click.Choice(["json", "table"]), default="table")
 @handle_api_error
-def tail_logs(query, lines, service, format):
+def tail_logs(query, lines, service, follow, format):
     """Tail recent logs (last 15 minutes).
 
     Shows the most recent log entries matching your query.
+    Use --follow to stream new logs continuously.
     """
     client = get_datadog_client()
-
-    # Hardcoded to last 15 minutes
-    from_ts, to_ts = parse_time_range("15m", "now")
-    from_str = datetime.fromtimestamp(from_ts).isoformat() + "Z"
-    to_str = datetime.fromtimestamp(to_ts).isoformat() + "Z"
 
     # Build query with optional filters
     full_query = query
     if service:
         full_query = f"{full_query} service:{service}"
 
-    body = {
-        "filter": {
-            "query": full_query,
-            "from": from_str,
-            "to": to_str,
-        },
-        "page": {
-            "limit": lines,
-        },
-        "sort": "-timestamp",
-    }
+    def fetch_logs():
+        """Fetch recent logs from the API."""
+        from_ts, to_ts = parse_time_range("15m", "now")
+        from_str = datetime.fromtimestamp(from_ts).isoformat() + "Z"
+        to_str = datetime.fromtimestamp(to_ts).isoformat() + "Z"
 
-    with console.status("[cyan]Tailing logs...[/cyan]"):
+        body = {
+            "filter": {
+                "query": full_query,
+                "from": from_str,
+                "to": to_str,
+            },
+            "page": {
+                "limit": lines,
+            },
+            "sort": "-timestamp",
+        }
+
         response = client.logs.list_logs(body=body)
+        return response.data if response.data else []
 
-    log_entries = response.data if response.data else []
+    if follow:
+        seen_ids = set()
+        try:
+            while True:
+                log_entries = fetch_logs()
 
-    if not log_entries:
-        console.print("[yellow]No logs found in the last 15 minutes.[/yellow]")
-        return
+                # Filter to only new logs
+                new_logs = [log for log in log_entries if log.id not in seen_ids]
+                for log in log_entries:
+                    seen_ids.add(log.id)
 
-    if format == "json":
-        output = [_format_log_entry(log) for log in log_entries]
-        print(json.dumps(output, indent=2))
+                if new_logs:
+                    if format == "json":
+                        output = [_format_log_entry(log) for log in new_logs]
+                        print(json.dumps(output, indent=2))
+                    else:
+                        for log in new_logs:
+                            attrs = log.attributes
+                            time_str = str(attrs.timestamp)
+                            if hasattr(attrs.timestamp, "strftime"):
+                                time_str = attrs.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+                            status = attrs.status
+                            color = STATUS_COLORS.get(status, "white")
+                            console.print(
+                                f"[dim]{time_str}[/dim] "
+                                f"[{color}]{status}[/{color}] "
+                                f"[cyan]{attrs.service}[/cyan] "
+                                f"{attrs.message}"
+                            )
+
+                time.sleep(5)
+        except KeyboardInterrupt:
+            console.print("\n[dim]Follow stopped[/dim]")
     else:
-        table = _render_logs_table(log_entries, title="Recent Logs (last 15m)")
-        console.print(table)
-        console.print(f"\n[dim]Total logs: {len(log_entries)}[/dim]")
+        with console.status("[cyan]Tailing logs...[/cyan]"):
+            log_entries = fetch_logs()
+
+        if not log_entries:
+            console.print("[yellow]No logs found in the last 15 minutes.[/yellow]")
+            return
+
+        if format == "json":
+            output = [_format_log_entry(log) for log in log_entries]
+            print(json.dumps(output, indent=2))
+        else:
+            table = _render_logs_table(log_entries, title="Recent Logs (last 15m)")
+            console.print(table)
+            console.print(f"\n[dim]Total logs: {len(log_entries)}[/dim]")
 
 
 @logs.command(name="query")

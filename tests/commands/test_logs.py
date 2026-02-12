@@ -487,3 +487,168 @@ def test_logs_trace_not_found(mock_client, runner):
 
         assert result.exit_code == 0
         assert "No logs found" in result.output
+
+
+# ============================================================================
+# Tail --follow Tests
+# ============================================================================
+
+
+def test_logs_tail_follow_flag_accepted(mock_client, runner):
+    """Test that --follow flag is accepted by the tail command."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    mock_logs = [
+        create_mock_log("Log entry", "web-api", "info", now),
+    ]
+    mock_response = Mock(data=mock_logs, meta=Mock(page=Mock(after=None)))
+    mock_client.logs.list_logs.return_value = mock_response
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.logs.time.sleep", side_effect=KeyboardInterrupt):
+            result = runner.invoke(logs, ["tail", "*", "--follow"])
+
+            # Should not fail with unrecognized option
+            assert result.exit_code == 0
+
+
+def test_logs_tail_follow_polls_repeatedly(mock_client, runner):
+    """Test that --follow polls the API in a loop."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    mock_logs = [
+        create_mock_log("Log entry 1", "web-api", "info", now),
+    ]
+
+    call_count = 0
+
+    def sleep_side_effect(interval):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 2:
+            raise KeyboardInterrupt
+
+    mock_response = Mock(data=mock_logs, meta=Mock(page=Mock(after=None)))
+    mock_client.logs.list_logs.return_value = mock_response
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.logs.time.sleep", side_effect=sleep_side_effect):
+            result = runner.invoke(logs, ["tail", "*", "--follow"])
+
+            assert result.exit_code == 0
+            # Should have called list_logs multiple times (initial + follow polls)
+            assert mock_client.logs.list_logs.call_count >= 2
+
+
+def test_logs_tail_follow_shows_new_logs(mock_client, runner):
+    """Test that --follow displays new log entries as they arrive."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    first_logs = [
+        create_mock_log("First log", "web-api", "info", now),
+    ]
+    second_logs = [
+        create_mock_log("Second log", "web-api", "error", now),
+    ]
+
+    responses = iter(
+        [
+            Mock(data=first_logs, meta=Mock(page=Mock(after="cursor1"))),
+            Mock(data=second_logs, meta=Mock(page=Mock(after=None))),
+        ]
+    )
+    mock_client.logs.list_logs.side_effect = lambda **kwargs: next(responses)
+
+    call_count = 0
+
+    def sleep_side_effect(interval):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 2:
+            raise KeyboardInterrupt
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.logs.time.sleep", side_effect=sleep_side_effect):
+            result = runner.invoke(logs, ["tail", "*", "--follow"])
+
+            assert result.exit_code == 0
+            assert "First log" in result.output
+            assert "Second log" in result.output
+
+
+def test_logs_tail_follow_handles_empty_polls(mock_client, runner):
+    """Test that --follow handles polls that return no new logs."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    initial_logs = [
+        create_mock_log("Initial log", "web-api", "info", now),
+    ]
+
+    responses = iter(
+        [
+            Mock(data=initial_logs, meta=Mock(page=Mock(after=None))),
+            Mock(data=[], meta=Mock(page=Mock(after=None))),
+        ]
+    )
+    mock_client.logs.list_logs.side_effect = lambda **kwargs: next(responses)
+
+    call_count = 0
+
+    def sleep_side_effect(interval):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 1:
+            raise KeyboardInterrupt
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.logs.time.sleep", side_effect=sleep_side_effect):
+            result = runner.invoke(logs, ["tail", "*", "--follow"])
+
+            assert result.exit_code == 0
+            assert "Initial log" in result.output
+
+
+def test_logs_tail_without_follow_runs_normally(mock_client, runner):
+    """Test that without --follow, tail command runs once and exits."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    mock_logs = [
+        create_mock_log("Normal tail log", "web-api", "info", now),
+    ]
+    mock_response = Mock(data=mock_logs, meta=Mock(page=Mock(after=None)))
+    mock_client.logs.list_logs.return_value = mock_response
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        result = runner.invoke(logs, ["tail", "*", "--format", "json"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.output)
+        assert len(output) == 1
+        assert output[0]["message"] == "Normal tail log"
+        # list_logs should be called exactly once
+        mock_client.logs.list_logs.assert_called_once()
+
+
+def test_logs_tail_follow_clean_exit(mock_client, runner):
+    """Test that --follow exits cleanly on Ctrl+C."""
+    from ddogctl.commands.logs import logs
+
+    now = datetime.now()
+    mock_logs = [
+        create_mock_log("Log entry", "web-api", "info", now),
+    ]
+    mock_response = Mock(data=mock_logs, meta=Mock(page=Mock(after=None)))
+    mock_client.logs.list_logs.return_value = mock_response
+
+    with patch("ddogctl.commands.logs.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.logs.time.sleep", side_effect=KeyboardInterrupt):
+            result = runner.invoke(logs, ["tail", "*", "--follow"])
+
+            assert result.exit_code == 0
+            # Should show a clean exit message
+            assert "Follow stopped" in result.output
