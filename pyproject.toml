@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["dd", "dd.commands", "dd.formatters", "dd.models", "dd.utils"]
+packages = ["ddg", "ddg.commands", "ddg.formatters", "ddg.models", "ddg.utils"]
 
 [project]
-name = "dd-cli"
+name = "ddg-cli"
 version = "0.1.0"
-description = "Datadog CLI for Kojo troubleshooting"
+description = "A modern CLI for the Datadog API. Like Dogshell, but better."
 requires-python = ">=3.10"
 dependencies = [
     "datadog-api-client>=2.29.0",
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-dd = "dd.cli:main"
+ddg = "ddg.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

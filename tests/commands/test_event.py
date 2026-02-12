@@ -4,7 +4,7 @@ import pytest
 import json
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
-from dd.commands.event import event
+from ddg.commands.event import event
 
 
 class MockEvent:
@@ -92,7 +92,7 @@ def test_event_list_table_format(mock_client, runner):
     mock_response = MockEventListResponse(events=mock_events)
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -116,7 +116,7 @@ def test_event_list_json_format(mock_client, runner):
     mock_response = MockEventListResponse(events=mock_events)
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list", "--format", "json"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -135,7 +135,7 @@ def test_event_list_no_events(mock_client, runner):
     mock_response = MockEventListResponse(events=[])
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -149,7 +149,7 @@ def test_event_list_with_filters(mock_client, runner):
     mock_response = MockEventListResponse(events=[])
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             event,
             [
@@ -183,8 +183,8 @@ def test_event_list_with_custom_time_range(mock_client, runner):
     mock_response = MockEventListResponse(events=[])
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
-        with patch("dd.commands.event.parse_time_range") as mock_parse_time:
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
+        with patch("ddg.commands.event.parse_time_range") as mock_parse_time:
             mock_parse_time.return_value = (1609459200, 1609545600)
 
             result = runner.invoke(event, ["list", "--since", "7d"])
@@ -215,7 +215,7 @@ def test_event_get_full_details(mock_client, runner):
     mock_response = MockEventGetResponse(event=mock_event)
     mock_client.events.get_event.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["get", "12345"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -238,7 +238,7 @@ def test_event_get_minimal_details(mock_client, runner):
     mock_response = MockEventGetResponse(event=mock_event)
     mock_client.events.get_event.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["get", "123"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -259,7 +259,7 @@ def test_event_post_simple(mock_client, runner):
     mock_response = MockEventCreateResponse(event=mock_event)
     mock_client.events.create_event.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["post", "Investigation Started"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -285,7 +285,7 @@ def test_event_post_with_all_options(mock_client, runner):
     mock_response = MockEventCreateResponse(event=mock_event)
     mock_client.events.create_event.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(
             event,
             [
@@ -328,7 +328,7 @@ def test_event_post_without_text(mock_client, runner):
     mock_response = MockEventCreateResponse(event=mock_event)
     mock_client.events.create_event.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["post", "Short Event"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -355,7 +355,7 @@ def test_event_list_truncates_long_titles(mock_client, runner):
     mock_response = MockEventListResponse(events=mock_events)
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list", "--format", "table"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -370,7 +370,7 @@ def test_event_list_with_priority_filter(mock_client, runner):
     mock_response = MockEventListResponse(events=[])
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list", "--priority", "low"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -385,7 +385,7 @@ def test_event_list_without_optional_filters(mock_client, runner):
     mock_response = MockEventListResponse(events=[])
     mock_client.events.list_events.return_value = mock_response
 
-    with patch("dd.commands.event.get_datadog_client", return_value=mock_client):
+    with patch("ddg.commands.event.get_datadog_client", return_value=mock_client):
         result = runner.invoke(event, ["list"])
 
         assert result.exit_code == 0, f"Command failed: {result.output}"

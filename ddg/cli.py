@@ -28,11 +28,11 @@ def main():
 
 
 # Import and register all command groups
-from dd.commands.monitor import monitor
-from dd.commands.metric import metric
-from dd.commands.event import event
-from dd.commands.host import host
-from dd.commands.apm import apm
+from ddg.commands.monitor import monitor
+from ddg.commands.metric import metric
+from ddg.commands.event import event
+from ddg.commands.host import host
+from ddg.commands.apm import apm
 
 main.add_command(monitor)
 main.add_command(metric)

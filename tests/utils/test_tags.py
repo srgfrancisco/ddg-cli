@@ -1,7 +1,7 @@
 """Tests for tag processing utilities."""
 
 import pytest
-from dd.utils.tags import parse_tags, format_tags_for_display
+from ddg.utils.tags import parse_tags, format_tags_for_display
 
 
 class TestParseTags:

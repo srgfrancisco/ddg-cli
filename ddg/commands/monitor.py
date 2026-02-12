@@ -5,9 +5,9 @@ import json
 import sys
 from rich.console import Console
 from rich.table import Table
-from dd.client import get_datadog_client
-from dd.utils.error import handle_api_error
-from dd.utils.tags import parse_tags
+from ddg.client import get_datadog_client
+from ddg.utils.error import handle_api_error
+from ddg.utils.tags import parse_tags
 
 console = Console()
 
