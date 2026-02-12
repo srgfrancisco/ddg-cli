@@ -10,7 +10,7 @@ ddogctl is a modern CLI for the Datadog API. Like Dogshell, but better. Rich ter
 
 ```bash
 # Setup
-uv sync --all-extras
+uv sync --all-extras                          # --all-extras required for dev tools
 
 # Run tests
 uv run pytest tests/ -v
@@ -68,10 +68,8 @@ Standard test pattern: patch `get_datadog_client` to return `mock_client`, invok
 
 ## Development Workflow
 
-- **Worktrees**: Always create a Git worktree for every new feature, fix, or change. Use `git worktree add .worktrees/<type>/<name> -b <type>/<name>`.
+- **Worktrees**: Always create a Git worktree for every new feature, fix, or change. Use the `./.worktrees` folder. Use `git gtr` instead of plain `git worktree` commands.
 - **Pull requests**: Every change lands via PR — no direct commits to `main`. Open a PR from the worktree branch, get it reviewed, then merge.
-- **Branch protection**: `main` is protected — direct pushes are rejected. Always use a branch + PR.
-- **Cleanup after merge**: Pull main, remove the worktree (`git worktree remove`), delete local and remote branch.
 - **Commits**: Follow conventional commit format.
 
 ## Development Methodology
