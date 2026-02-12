@@ -33,12 +33,18 @@ from ddg.commands.metric import metric
 from ddg.commands.event import event
 from ddg.commands.host import host
 from ddg.commands.apm import apm
+from ddg.commands.logs import logs
+from ddg.commands.dbm import dbm
+from ddg.commands.investigate import investigate
 
 main.add_command(monitor)
 main.add_command(metric)
 main.add_command(event)
 main.add_command(host)
 main.add_command(apm)
+main.add_command(logs)
+main.add_command(dbm)
+main.add_command(investigate)
 
 
 if __name__ == "__main__":

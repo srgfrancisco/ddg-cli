@@ -25,6 +25,8 @@ def mock_client():
     client.metrics = Mock()
     client.events = Mock()
     client.spans = Mock()
+    client.logs = Mock()
+    client.dbm = Mock()
     return client
 
 
@@ -266,3 +268,106 @@ def create_mock_span(span_id, service, resource_name, trace_id, start_ts, end_ts
             }
 
     return MockSpan()
+
+
+# Logs factory functions
+
+def create_mock_log(message, service, status, timestamp, attributes=None, trace_id=None):
+    """Factory for mock log objects."""
+    class MockLog:
+        def __init__(self):
+            self.id = f"log-{abs(hash(message)) % 10000}"
+            self.type = "log"
+            attrs = attributes or {}
+            if trace_id:
+                attrs["trace_id"] = trace_id
+            self.attributes = Mock(
+                message=message,
+                service=service,
+                status=status,
+                timestamp=timestamp,
+                attributes=attrs,
+                tags=[f"service:{service}"],
+            )
+
+        def to_dict(self):
+            return {
+                "id": self.id,
+                "attributes": {
+                    "message": self.attributes.message,
+                    "service": self.attributes.service,
+                    "status": self.attributes.status,
+                    "timestamp": str(self.attributes.timestamp),
+                },
+            }
+
+    return MockLog()
+
+
+# DBM factory functions
+
+def create_mock_dbm_host(host, engine, version, connections, status):
+    """Factory for mock DBM host objects."""
+    class MockDBMHost:
+        def __init__(self):
+            self.host = host
+            self.engine = engine
+            self.version = version
+            self.connections = connections
+            self.status = status
+
+        def to_dict(self):
+            return {
+                "host": self.host,
+                "engine": self.engine,
+                "version": self.version,
+                "connections": self.connections,
+                "status": self.status,
+            }
+
+    return MockDBMHost()
+
+
+def create_mock_dbm_query(query_id, normalized_query, avg_latency_ms, calls, total_time_ms, service, database):
+    """Factory for mock DBM query objects."""
+    class MockDBMQuery:
+        def __init__(self):
+            self.query_id = query_id
+            self.normalized_query = normalized_query
+            self.avg_latency = avg_latency_ms * 1_000_000  # ns
+            self.calls = calls
+            self.total_time = total_time_ms * 1_000_000  # ns
+            self.service = service
+            self.database = database
+
+        def to_dict(self):
+            return {
+                "query_id": self.query_id,
+                "normalized_query": self.normalized_query,
+                "avg_latency_ms": avg_latency_ms,
+                "calls": self.calls,
+                "total_time_ms": total_time_ms,
+                "service": self.service,
+                "database": self.database,
+            }
+
+    return MockDBMQuery()
+
+
+def create_mock_dbm_sample(timestamp, duration_ms, rows_affected, params):
+    """Factory for mock DBM query sample objects."""
+    class MockDBMSample:
+        def __init__(self):
+            self.timestamp = timestamp
+            self.duration = duration_ms * 1_000_000  # ns
+            self.rows_affected = rows_affected
+            self.parameters = params
+
+        def to_dict(self):
+            return {
+                "timestamp": str(self.timestamp),
+                "duration_ms": duration_ms,
+                "rows_affected": self.rows_affected,
+            }
+
+    return MockDBMSample()
