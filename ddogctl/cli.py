@@ -5,8 +5,37 @@ from rich.console import Console
 
 console = Console()
 
+# Command aliases: short name -> full command name
+ALIASES = {
+    "mon": "monitor",
+    "dash": "dashboard",
+    "dt": "downtime",
+    "sc": "service-check",
+    "inv": "investigate",
+}
 
-@click.group()
+
+class AliasGroup(click.Group):
+    """Click Group subclass that supports command aliases."""
+
+    def get_command(self, ctx, cmd_name):
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        # Check aliases
+        if cmd_name in ALIASES:
+            return click.Group.get_command(self, ctx, ALIASES[cmd_name])
+        return None
+
+    def resolve_command(self, ctx, args):
+        # Always resolve alias to the full command name
+        cmd_name = args[0] if args else None
+        if cmd_name in ALIASES:
+            args = [ALIASES[cmd_name]] + args[1:]
+        return super().resolve_command(ctx, args)
+
+
+@click.group(cls=AliasGroup)
 @click.version_option(version="1.0.0")
 def main():
     """A modern CLI for the Datadog API. Like Dogshell, but better.
@@ -42,6 +71,7 @@ from ddogctl.commands.tag import tag
 from ddogctl.commands.downtime import downtime
 from ddogctl.commands.slo import slo
 from ddogctl.commands.dashboard import dashboard
+from ddogctl.commands.completion import completion
 
 main.add_command(monitor)
 main.add_command(metric)
@@ -56,6 +86,7 @@ main.add_command(tag)
 main.add_command(downtime)
 main.add_command(slo)
 main.add_command(dashboard)
+main.add_command(completion)
 
 
 if __name__ == "__main__":
