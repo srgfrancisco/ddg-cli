@@ -7,7 +7,7 @@ packages = ["ddg", "ddg.commands", "ddg.formatters", "ddg.models", "ddg.utils"]
 
 [project]
 name = "ddg-cli"
-version = "0.1.0"
+version = "1.0.0"
 description = "A modern CLI for the Datadog API. Like Dogshell, but better."
 license = {text = "MIT"}
 readme = "README.md"

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ddg-cli is a modern CLI for the Datadog API. Like Dogshell, but better. Rich terminal output, APM/logs support, retry logic, investigation workflows. Requires Python 3.10+.
+ddg-cli is a modern CLI for the Datadog API. Like Dogshell, but better. Rich terminal output, APM/logs/DBM support, retry logic, investigation workflows. Requires Python 3.10+.
 
 ## Commands
 
@@ -25,9 +25,12 @@ ruff check ddg/ tests/                         # lint (line-length: 100)
 mypy ddg/                                      # type check
 
 # Run CLI
-source .envrc                                  # load DD_API_KEY, DD_APP_KEY
+export DD_API_KEY=... DD_APP_KEY=...
 ddg monitor list --state Alert
 ddg apm services
+ddg logs search "status:error" --service my-api
+ddg dbm queries --sort-by avg_latency
+ddg investigate latency my-service --threshold 500
 ```
 
 ## Architecture
@@ -37,11 +40,14 @@ ddg apm services
 **Command structure** (`ddg/commands/`): Each file defines a Click group with subcommands. Commands call `get_datadog_client()` to get an API client, then use Rich for output formatting.
 
 ```
-ddg apm {services, traces, analytics}
 ddg monitor {list, get, mute, unmute, validate}
-ddg metric {query, search, metadata}
-ddg event {list, get, post}
-ddg host {list, get, totals}
+ddg metric  {query, search, metadata}
+ddg event   {list, get, post}
+ddg host    {list, get, totals}
+ddg apm     {services, traces, analytics}
+ddg logs    {search, tail, query, trace}
+ddg dbm     {hosts, queries, explain, samples}
+ddg investigate {latency, errors, throughput, compare}
 ```
 
 **Key modules**:
@@ -54,16 +60,12 @@ ddg host {list, get, totals}
 ## Testing Patterns
 
 Tests use `unittest.mock` with Click's `CliRunner`. Key fixtures from `tests/conftest.py`:
-- `mock_client` — Mock with `.monitors`, `.hosts`, `.metrics`, `.events`, `.spans` attributes
+- `mock_client` — Mock with `.monitors`, `.hosts`, `.metrics`, `.events`, `.spans`, `.logs`, `.dbm` attributes
 - `runner` — `CliRunner()` instance
-- Factory functions: `create_mock_monitor()`, `create_mock_host()`, `create_mock_span()`, etc.
+- Factory functions: `create_mock_monitor()`, `create_mock_host()`, `create_mock_span()`, `create_mock_log()`, `create_mock_dbm_host()`, `create_mock_dbm_query()`, `create_mock_dbm_sample()`
 
 Standard test pattern: patch `get_datadog_client` to return `mock_client`, invoke command via `runner`, assert on output and exit code.
 
 ## Development Methodology
 
 Strict TDD (RED-GREEN-REFACTOR). Coverage target >90%. Reference implementation: `ddg/commands/apm.py`.
-
-## Planned Features
-
-See `IMPLEMENTATION_PLAN.md`: logs, database monitoring, investigation workflows.

@@ -1,8 +1,8 @@
 # DD CLI - Implementation Plan for Missing Features
 
-**Status**: Ready to execute
-**Last Updated**: 2026-02-11
-**Current State**: APM commands complete (176 tests, 94% coverage)
+**Status**: Complete
+**Last Updated**: 2026-02-12
+**Current State**: All phases complete (243 tests passing)
 
 ---
 
@@ -10,8 +10,8 @@
 
 This plan outlines the implementation of missing Datadog CLI features using strict TDD methodology. All implementations follow the RED-GREEN-REFACTOR cycle established in the APM implementation.
 
-**Current Commands**: monitor, metric, event, host, apm
-**Missing Critical Features**: logs, database monitoring, investigation workflows
+**Current Commands**: monitor, metric, event, host, apm, logs, dbm, investigate
+**All features implemented.**
 
 ---
 
@@ -415,9 +415,9 @@ tests/conftest.py            # Add mock factories
 | Phase | New Tests | Total Tests | Status |
 |-------|-----------|-------------|--------|
 | Current (APM) | 15 | 176 | ✅ Complete |
-| Phase 1 (Logs) | 23 | 199 | 🔴 Pending |
-| Phase 2 (DBM) | 24 | 223 | 🔴 Pending |
-| Phase 3 (Investigate) | 20 | 243 | 🔴 Pending |
+| Phase 1 (Logs) | 23 | 199 | ✅ Complete |
+| Phase 2 (DBM) | 24 | 223 | ✅ Complete |
+| Phase 3 (Investigate) | 20 | 243 | ✅ Complete |
 
 ### Success Criteria (Each Phase)
 
@@ -641,6 +641,15 @@ Thumbs.db
 
 ## Changelog
 
+### 2026-02-12
+- ✅ Renamed dd → ddg, genericized for open source
+- ✅ Added open-source scaffolding (LICENSE, CONTRIBUTING, CI, README)
+- ✅ Phase 1: Logs commands (search, tail, query, trace) — 23 tests
+- ✅ Phase 2: DBM commands (hosts, queries, explain, samples) — 24 tests
+- ✅ Phase 3: Investigation workflows (latency, errors, throughput, compare) — 20 tests
+- ✅ Total: 243 tests passing
+- ✅ Version bumped to 1.0.0
+
 ### 2026-02-11
 - ✅ Implemented APM commands (services, traces, analytics)
 - ✅ 15 tests, 94% coverage
@@ -651,14 +660,10 @@ Thumbs.db
 
 ## Next Steps
 
-1. **Move to standalone repository** (Git tracking)
-2. **Implement Phase 1: Logs** (~23 tests, ~3 hours)
-3. **Implement Phase 2: DBM** (~24 tests, ~4 hours)
-4. **Implement Phase 3: Investigate** (~20 tests, ~5 hours)
-5. **Documentation**: Update README with all commands
-6. **CI/CD**: Set up GitHub Actions for automated testing
-
-Total additional effort: ~12-15 hours of TDD implementation.
+All phases are complete. Future work:
+1. **Publish to PyPI** as `ddg-cli`
+2. **Manual verification** with real Datadog API
+3. **Add more commands** as needed (dashboards, synthetics, etc.)
 
 ---
 
