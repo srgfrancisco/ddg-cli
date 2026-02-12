@@ -69,6 +69,8 @@ def _load_profile_data(profile: str | None = None) -> dict | None:
     config_path = get_config_path()
 
     if not os.path.exists(config_path):
+        if profile:
+            return {"_error": f"Profile '{profile}' not found (config file missing)"}
         return None
 
     try:
@@ -103,23 +105,7 @@ def load_config(profile: str | None = None) -> DatadogConfig:
         profile: Optional profile name to use. If specified, loads from
                  the named profile in ~/.ddogctl/config.json.
     """
-    # Check if env vars are set
-    has_env_api_key = "DD_API_KEY" in os.environ
-    has_env_app_key = "DD_APP_KEY" in os.environ
-
-    # If both env vars are set and no explicit profile requested, use env vars directly
-    if has_env_api_key and has_env_app_key and profile is None:
-        # No explicit profile, and env vars exist -- still check DDOGCTL_PROFILE
-        ddogctl_profile = os.environ.get("DDOGCTL_PROFILE")
-        if not ddogctl_profile:
-            try:
-                return DatadogConfig()
-            except Exception as e:
-                console.print(f"[red]Configuration error: {e}[/red]")
-                _print_config_help()
-                sys.exit(1)
-
-    # Try loading from profile
+    # Try loading from profile (handles CLI flag, DDOGCTL_PROFILE, active_profile)
     profile_data = _load_profile_data(profile)
 
     if profile_data and "_error" in profile_data:

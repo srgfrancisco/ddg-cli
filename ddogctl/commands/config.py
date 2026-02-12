@@ -46,22 +46,27 @@ def load_config_data() -> dict:
     """Load config data from the config file.
 
     Returns:
-        Config data dict, or empty dict if file doesn't exist.
+        Config data dict, or empty dict if file doesn't exist or is corrupt.
     """
     config_path = get_config_path()
     if not os.path.exists(config_path):
         return {}
-    with open(config_path) as f:
-        return json.load(f)
+    try:
+        with open(config_path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        console.print(f"[red]Failed to load config file: {e}[/red]")
+        sys.exit(1)
 
 
 def save_config_data(data: dict) -> None:
     """Save config data to the config file, creating directory if needed."""
     config_dir = get_config_dir()
-    os.makedirs(config_dir, exist_ok=True)
+    os.makedirs(config_dir, mode=0o700, exist_ok=True)
     config_path = get_config_path()
     with open(config_path, "w") as f:
         json.dump(data, f, indent=2)
+    os.chmod(config_path, 0o600)
 
 
 @click.group()
@@ -79,8 +84,8 @@ def init_config():
     """
     console.print("[cyan]Datadog CLI Configuration Wizard[/cyan]\n")
 
-    api_key = click.prompt("API Key")
-    app_key = click.prompt("App Key")
+    api_key = click.prompt("API Key", hide_input=True)
+    app_key = click.prompt("App Key", hide_input=True)
     site = click.prompt("Site (us, eu, us3, us5, ap1, gov, or full domain)", default="us")
     profile_name = click.prompt("Profile name", default="default")
 
