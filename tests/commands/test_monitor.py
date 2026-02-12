@@ -844,3 +844,124 @@ def test_monitor_unmute_all_no_global_downtimes(mock_client, runner):
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "No global downtimes found" in result.output
         mock_client.downtimes.cancel_downtime.assert_not_called()
+
+
+# ============================================================================
+# Monitor List --watch Tests
+# ============================================================================
+
+
+def test_monitor_list_watch_flag_accepted(mock_client, runner):
+    """Test that --watch flag is accepted by the monitor list command."""
+    mock_monitors = [
+        MockMonitor(1, "Alert Monitor", MonitorOverallStates.ALERT, tags=["env:prod"]),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop"):
+            result = runner.invoke(monitor, ["list", "--watch"])
+
+            # Should not fail with unrecognized option
+            assert result.exit_code == 0
+
+
+def test_monitor_list_watch_with_interval(mock_client, runner):
+    """Test that --interval flag is accepted alongside --watch."""
+    mock_monitors = [
+        MockMonitor(1, "Alert Monitor", MonitorOverallStates.ALERT),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--watch", "--interval", "10"])
+
+            assert result.exit_code == 0
+            # watch_loop should be called with the specified interval
+            mock_watch.assert_called_once()
+            call_kwargs = mock_watch.call_args
+            assert call_kwargs[1]["interval"] == 10
+
+
+def test_monitor_list_watch_calls_watch_loop(mock_client, runner):
+    """Test that --watch triggers watch_loop with a render function."""
+    mock_monitors = [
+        MockMonitor(1, "Alert Monitor", MonitorOverallStates.ALERT),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--watch"])
+
+            assert result.exit_code == 0
+            mock_watch.assert_called_once()
+            # First arg should be a callable (render function)
+            render_func = mock_watch.call_args[0][0]
+            assert callable(render_func)
+
+
+def test_monitor_list_watch_default_interval(mock_client, runner):
+    """Test that --watch defaults to 30 second interval."""
+    mock_monitors = [
+        MockMonitor(1, "Alert Monitor", MonitorOverallStates.ALERT),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--watch"])
+
+            assert result.exit_code == 0
+            call_kwargs = mock_watch.call_args
+            assert call_kwargs[1]["interval"] == 30
+
+
+def test_monitor_list_without_watch_runs_normally(mock_client, runner):
+    """Test that without --watch, the command runs once and exits."""
+    mock_monitors = [
+        MockMonitor(1, "Test Monitor", MonitorOverallStates.ALERT, tags=["env:prod"]),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--format", "table"])
+
+            assert result.exit_code == 0
+            # watch_loop should NOT be called
+            mock_watch.assert_not_called()
+            assert "Datadog Monitors" in result.output
+
+
+def test_monitor_list_watch_with_state_filter(mock_client, runner):
+    """Test that --watch works alongside --state filter."""
+    mock_monitors = [
+        MockMonitor(1, "Alert Monitor", MonitorOverallStates.ALERT),
+        MockMonitor(2, "OK Monitor", MonitorOverallStates.OK),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--state", "Alert", "--watch"])
+
+            assert result.exit_code == 0
+            mock_watch.assert_called_once()
+
+
+def test_monitor_list_interval_without_watch(mock_client, runner):
+    """Test that --interval without --watch is ignored (runs normally)."""
+    mock_monitors = [
+        MockMonitor(1, "Test Monitor", MonitorOverallStates.ALERT),
+    ]
+    mock_client.monitors.list_monitors.return_value = mock_monitors
+
+    with patch("ddogctl.commands.monitor.get_datadog_client", return_value=mock_client):
+        with patch("ddogctl.commands.monitor.watch_loop") as mock_watch:
+            result = runner.invoke(monitor, ["list", "--interval", "10", "--format", "table"])
+
+            assert result.exit_code == 0
+            mock_watch.assert_not_called()
+            assert "Datadog Monitors" in result.output

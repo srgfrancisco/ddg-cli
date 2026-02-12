@@ -3,12 +3,14 @@
 import click
 import json
 import sys
+from datetime import datetime
 from rich.console import Console
 from rich.table import Table
 from ddogctl.client import get_datadog_client
 from ddogctl.utils.error import handle_api_error
 from ddogctl.utils.file_input import load_json_option
 from ddogctl.utils.confirm import confirm_action
+from ddogctl.utils.watch import watch_loop
 
 console = Console()
 
@@ -17,6 +19,46 @@ console = Console()
 def monitor():
     """Monitor management commands."""
     pass
+
+
+def _build_monitor_table(monitors):
+    """Build a Rich table from a list of monitor objects.
+
+    Args:
+        monitors: List of Datadog monitor objects.
+
+    Returns:
+        Rich Table renderable.
+    """
+    table = Table(title="Datadog Monitors", show_lines=False)
+    table.add_column("ID", style="cyan", width=10)
+    table.add_column("State", style="bold", width=10)
+    table.add_column("Name", style="white", min_width=30)
+    table.add_column("Tags", style="dim", width=30)
+
+    for m in monitors:
+        # Convert state to string for comparison
+        state_str = str(m.overall_state) if m.overall_state else "Unknown"
+        state_color = {
+            "Alert": "red",
+            "Warn": "yellow",
+            "OK": "green",
+            "No Data": "dim",
+        }.get(state_str, "white")
+
+        # Truncate tags for display
+        tag_display = ", ".join(m.tags[:3]) if m.tags else ""
+        if m.tags and len(m.tags) > 3:
+            tag_display += f", +{len(m.tags) - 3} more"
+
+        table.add_row(
+            str(m.id),
+            f"[{state_color}]{state_str}[/{state_color}]",
+            m.name[:60] if m.name else "",
+            tag_display,
+        )
+
+    return table
 
 
 @monitor.command(name="list")
@@ -33,63 +75,54 @@ def monitor():
     default="table",
     help="Output format",
 )
+@click.option("--watch", is_flag=True, default=False, help="Auto-refresh at intervals")
+@click.option("--interval", type=int, default=30, help="Refresh interval in seconds (default: 30)")
 @handle_api_error
-def list_monitors(tags, state, format):
+def list_monitors(tags, state, format, watch, interval):
     """List all monitors (equivalent to dogshell's show_all)."""
     client = get_datadog_client()
 
-    with console.status("[cyan]Fetching monitors...[/cyan]"):
-        # Build kwargs only with provided parameters
+    def fetch_monitors():
+        """Fetch and filter monitors from the API."""
         kwargs = {}
         if tags:
             kwargs["tags"] = tags
-
         monitors = client.monitors.list_monitors(**kwargs)
+        if state:
+            monitors = [m for m in monitors if str(m.overall_state) in state]
+        return monitors
 
-    # Filter by state if specified
-    if state:
-        monitors = [m for m in monitors if str(m.overall_state) in state]
+    if watch:
 
-    if format == "table":
-        table = Table(title="Datadog Monitors", show_lines=False)
-        table.add_column("ID", style="cyan", width=10)
-        table.add_column("State", style="bold", width=10)
-        table.add_column("Name", style="white", min_width=30)
-        table.add_column("Tags", style="dim", width=30)
+        def render():
+            monitors = fetch_monitors()
+            table = _build_monitor_table(monitors)
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            from rich.console import Group
 
-        for m in monitors:
-            # Convert state to string for comparison
-            state_str = str(m.overall_state) if m.overall_state else "Unknown"
-            state_color = {
-                "Alert": "red",
-                "Warn": "yellow",
-                "OK": "green",
-                "No Data": "dim",
-            }.get(state_str, "white")
-
-            # Truncate tags for display
-            tag_display = ", ".join(m.tags[:3]) if m.tags else ""
-            if m.tags and len(m.tags) > 3:
-                tag_display += f", +{len(m.tags) - 3} more"
-
-            table.add_row(
-                str(m.id),
-                f"[{state_color}]{state_str}[/{state_color}]",
-                m.name[:60] if m.name else "",
-                tag_display,
+            return Group(
+                table,
+                f"\n[dim]Total monitors: {len(monitors)} | Last refresh: {now}[/dim]",
             )
 
-        console.print(table)
-        console.print(f"\n[dim]Total monitors: {len(monitors)}[/dim]")
+        watch_loop(render, interval=interval, console=console)
+    else:
+        with console.status("[cyan]Fetching monitors...[/cyan]"):
+            monitors = fetch_monitors()
 
-    elif format == "json":
-        print(json.dumps([m.to_dict() for m in monitors], indent=2, default=str))
+        if format == "table":
+            table = _build_monitor_table(monitors)
+            console.print(table)
+            console.print(f"\n[dim]Total monitors: {len(monitors)}[/dim]")
 
-    elif format == "markdown":
-        print("| ID | State | Name |")
-        print("|---|---|---|")
-        for m in monitors:
-            print(f"| {m.id} | {m.overall_state} | {m.name} |")
+        elif format == "json":
+            print(json.dumps([m.to_dict() for m in monitors], indent=2, default=str))
+
+        elif format == "markdown":
+            print("| ID | State | Name |")
+            print("|---|---|---|")
+            for m in monitors:
+                print(f"| {m.id} | {m.overall_state} | {m.name} |")
 
 
 @monitor.command(name="get")
