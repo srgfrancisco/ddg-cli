@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dd", "dd.commands", "dd.formatters", "dd.models", "dd.utils"]
+
+[project]
+name = "dd-cli"
+version = "0.1.0"
+description = "Datadog CLI for Kojo troubleshooting"
+requires-python = ">=3.10"
+dependencies = [
+    "datadog-api-client>=2.29.0",
+    "click>=8.1.7",
+    "rich>=13.9.4",
+    "tabulate>=0.9.0",
+    "python-dateutil>=2.9.0",
+    "pydantic>=2.10.5",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.3",
+    "jinja2>=3.1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+dd = "dd.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: integration tests (use -m 'not integration' to skip)",
+]
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
