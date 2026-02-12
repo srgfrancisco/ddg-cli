@@ -9,7 +9,21 @@ packages = ["ddg", "ddg.commands", "ddg.formatters", "ddg.models", "ddg.utils"]
 name = "ddg-cli"
 version = "0.1.0"
 description = "A modern CLI for the Datadog API. Like Dogshell, but better."
+license = {text = "MIT"}
+readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["datadog", "cli", "monitoring", "observability", "apm", "logs"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+]
 dependencies = [
     "datadog-api-client>=2.29.0",
     "click>=8.1.7",
@@ -34,6 +48,10 @@ dev = [
 
 [project.scripts]
 ddg = "ddg.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sergiofrancovel/ddg-cli"
+Issues = "https://github.com/sergiofrancovel/ddg-cli/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

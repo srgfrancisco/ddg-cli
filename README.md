@@ -1,69 +1,108 @@
-# DD CLI - Datadog Command Line Interface
+# ddg-cli
 
-A comprehensive CLI tool for querying Datadog APIs across monitors, metrics, events, logs, APM, and database monitoring.
+**A modern CLI for the Datadog API. Like Dogshell, but better.**
+
+## Features
+
+- Rich terminal output with tables, colors, and progress bars
+- APM trace search and service listing
+- Log querying with trace correlation
+- Database monitoring (DBM) for slow queries and execution plans
+- Investigation workflows that correlate across monitors, traces, logs, and hosts
+- Retry logic with exponential backoff
+- Region shortcuts (`us`, `eu`, `us3`, `us5`, `ap1`, `gov`)
+
+## ddg-cli vs Dogshell
+
+| Feature | ddg-cli | Dogshell |
+|---|---|---|
+| Rich terminal output | Yes | No |
+| APM traces | Yes | No |
+| Log search + correlation | Yes | No |
+| Database monitoring | Yes | No |
+| Investigation workflows | Yes | No |
+| Retry with backoff | Yes | No |
+| Active maintenance | Yes | Deprecated |
+
+## Installation
+
+```bash
+pip install ddg-cli
+```
+
+Or with pipx:
+
+```bash
+pipx install ddg-cli
+```
+
+Or with uv:
+
+```bash
+uv pip install ddg-cli
+```
+
+## Configuration
+
+Set the required environment variables:
+
+```bash
+export DD_API_KEY="your-api-key"
+export DD_APP_KEY="your-app-key"
+export DD_SITE="us"  # optional, defaults to datadoghq.com
+```
+
+### Region Shortcuts
+
+| Shortcut | Site |
+|---|---|
+| `us` | `datadoghq.com` |
+| `eu` | `datadoghq.eu` |
+| `us3` | `us3.datadoghq.com` |
+| `us5` | `us5.datadoghq.com` |
+| `ap1` | `ap1.datadoghq.com` |
+| `gov` | `ddog-gov.com` |
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+# Monitors
+ddg monitor list --state Alert
+ddg monitor get 12345
 
-# Configure
-cp .envrc.example .envrc
-# Edit .envrc with your Datadog API keys
-source .envrc
+# Metrics
+ddg metric query "avg:system.cpu.user{env:prod}" --from 1h
+ddg metric search "cpu"
 
-# Test
-pytest tests/ -v
-# Expected: 176 passed
+# Events
+ddg event list --from 1d --priority normal
+ddg event post "Deployment" "v2.1.0 deployed to prod"
 
-# Use
-./scripts/dd_cli.sh apm services
-./scripts/dd_cli.sh apm traces web-prod-blue --from 1h
+# Hosts
+ddg host list --filter "env:prod"
+ddg host info web-prod-01
+
+# APM
+ddg apm services
+ddg apm traces my-service --from 1h
+
+# Logs
+ddg logs search "status:error" --service my-api --from 30m
+ddg logs tail "env:prod" --follow
+
+# Database Monitoring
+ddg dbm slow-queries --service postgres-prod --from 1h
+ddg dbm explain "SELECT * FROM users WHERE id = 1"
+
+# Investigation Workflows
+ddg investigate service my-api --from 1h
+ddg investigate host web-prod-01 --from 30m
 ```
 
-## Features
+## Contributing
 
-### Implemented
-- **monitor** - Monitor management
-- **metric** - Metric queries
-- **event** - Event management
-- **host** - Host information
-- **apm** - APM (services, traces, analytics)
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and development guidelines.
 
-### Coming Soon
-- **logs** - Log querying
-- **dbm** - Database monitoring
-- **investigate** - Investigation workflows
+## License
 
-## Documentation
-
-- [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) - Feature roadmap
-- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) - Migration details
-
-## Testing
-
-```bash
-pytest tests/ -v                              # Run all tests
-pytest tests/commands/test_apm.py -v          # Run APM tests
-pytest tests/ --cov=dd --cov-report=html      # Coverage report
-```
-
-## Development
-
-Follow strict TDD (RED-GREEN-REFACTOR):
-1. Write failing test
-2. Make test pass
-3. Refactor
-4. Verify coverage (>90% target)
-
-See `dd/commands/apm.py` as reference implementation.
-
-## Stats
-
-- **Total Tests**: 176
-- **Coverage**: 96%
-- **Commands**: 5 (monitor, metric, event, host, apm)
-- **APM Tests**: 15 (94% coverage)
+[MIT](./LICENSE)
