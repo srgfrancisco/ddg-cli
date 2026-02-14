@@ -10,6 +10,7 @@ ddogctl is a modern CLI for the Datadog API. Like Dogshell, but better. Rich ter
 
 ```bash
 # Setup
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install uv if needed
 uv sync --all-extras                          # --all-extras required for dev tools
 
 # Run tests
@@ -39,6 +40,7 @@ uv run ddogctl monitor list --state Alert --watch 10   # refresh every 10s
 **Entry point**: `ddogctl.cli:main` — a Click group (`AliasGroup`) that registers command subgroups.
 
 **Command groups** (`ddogctl/commands/`): Each file defines a Click group with subcommands. Commands call `get_datadog_client()` to get an API client, then use Rich for output formatting. All commands support `--format json|table`.
+- **Defensive attribute access**: Use `getattr(obj, "attr", default)` for optional attributes (pattern in rum.py, incident.py, user.py). API responses vary by source (e.g., AWS Firelens logs).
 
 ```
 ddogctl monitor      {list, get, create, update, delete, mute, unmute, validate, mute-all, unmute-all}
@@ -92,11 +94,13 @@ Tests use `unittest.mock` with Click's `CliRunner`. Key fixtures from `tests/con
 - Factory functions: `create_mock_monitor()`, `create_mock_host()`, `create_mock_span()`, `create_mock_log()`, `create_mock_dbm_host()`, `create_mock_dbm_query()`, `create_mock_dbm_sample()`, `create_mock_service_list()`, `create_mock_rum_event()`
 
 Standard test pattern: patch `get_datadog_client` to return `mock_client`, invoke command via `runner`, assert on output and exit code.
+- **Mock attribute limiting**: Use `Mock(spec_set=["attr1", "attr2"])` to limit attributes. `del mock.attr` doesn't work—Mock returns new Mock for any attribute access.
 
 ## Development Workflow
 
 - **Worktrees**: Always create a Git worktree for every new feature, fix, or change. Use the `./.worktrees` folder. Use `git gtr` instead of plain `git worktree` commands.
 - **Pull requests**: Every change lands via PR — no direct commits to `main`. Open a PR from the worktree branch, get it reviewed, then merge.
+- **Branch protection**: Cannot push directly to `main`—branch protection rules require all changes via PRs.
 - **Commits**: Follow conventional commit format.
 - **CI**: Tests run on Python 3.10-3.13 + `claude-review` AI code review. Never merge without all CI checks passing.
 
@@ -118,3 +122,4 @@ Strict TDD (RED-GREEN-REFACTOR). Coverage target >90%. Reference implementation:
 1. Bump version in `pyproject.toml` and `ddogctl/cli.py` (`@click.version_option`)
 2. PR, merge, then tag: `git tag -a vX.Y.Z -m "vX.Y.Z"` and `git push origin vX.Y.Z`
 3. CI publish job auto-triggers on `refs/tags/v*` via PyPI trusted publishing
+   - **First-time setup**: Configure PyPI Trusted Publishing at https://pypi.org/manage/project/ddogctl/settings/publishing/ (owner: `srgfrancisco`, repo: `ddogctl`, workflow: `publish.yml`)
